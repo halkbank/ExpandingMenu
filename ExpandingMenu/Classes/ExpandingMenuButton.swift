@@ -41,7 +41,7 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
     }
     
     // MARK: Public Properties
-    @objc open var menuItemMargin: CGFloat = 7.0
+    @objc open var menuItemMargin: CGFloat = 17.0
     @objc open var menuButtonHapticStyle: HapticFeedbackStyle = .medium
     @objc open var menuItemsHapticStyle: HapticFeedbackStyle = .light
     
@@ -108,9 +108,12 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
     fileprivate var isExpanding: Bool = false
     fileprivate var isAnimating: Bool = false
     
+    fileprivate var menuButtonCloseYDistance: CGFloat?
+
+    
     
     // MARK: - Initializer
-    @objc public init(frame: CGRect, image: UIImage, highlightedImage: UIImage? = nil,  rotatedImage: UIImage, rotatedHighlightedImage: UIImage? = nil) {
+    @objc public init(frame: CGRect, image: UIImage, highlightedImage: UIImage? = nil,  rotatedImage: UIImage, rotatedHighlightedImage: UIImage? = nil, menuButtonCloseYDistance: CGFloat) {
         super.init(frame: frame)
         
         func configureViewsLayoutWithButtonSize(_ menuButtonSize: CGSize) {
@@ -124,6 +127,7 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
             self.menuButton = UIButton(frame: CGRect(x: 0.0, y: 0.0, width: menuButtonSize.width, height: menuButtonSize.height))
             self.menuButton.setImage(self.menuButtonImage, for: .normal)
             self.menuButton.setImage(self.menuButtonHighlightedImage, for: .highlighted)
+            self.menuButton.imageView?.contentMode = .center
             self.menuButton.addTarget(self, action: #selector(centerButtonTapped), for: .touchDown)
             self.menuButton.center = CGPoint(x: self.frame.width / 2.0, y: self.frame.height / 2.0)
             self.addSubview(self.menuButton)
@@ -152,6 +156,7 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
         self.menuButtonHighlightedImage = highlightedImage
         self.menuButtonRotatedImage = rotatedImage
         self.menuButtonRotatedHighlightedImage = rotatedHighlightedImage
+        self.menuButtonCloseYDistance = menuButtonCloseYDistance
         
         if frame == CGRect.zero {
             configureViewsLayoutWithButtonSize(self.menuButtonImage?.size ?? CGSize.zero)
@@ -162,9 +167,9 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
         self.configureSounds()
     }
     
-    @objc public convenience init(image: UIImage, rotatedImage: UIImage) {
-        self.init(frame: CGRect.zero, image: image, rotatedImage: rotatedImage)
-    }
+//    @objc public convenience init(image: UIImage, rotatedImage: UIImage) {
+//        self.init(frame: CGRect.zero, image: image, rotatedImage: rotatedImage)
+//    }
     
     required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -292,8 +297,14 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
         let currentAngle: CGFloat = 90.0
         
         var lastDistance: CGFloat = 0.0
-        var lastItemSize: CGSize = self.menuButton.bounds.size
+        var lastItemSize = CGSize(width: 70,height: 50)
         
+        if(self.menuButtonCloseYDistance != nil){
+            UIView.animate(withDuration: 0.15, animations: { () -> Void in
+            self.menuButton.center = CGPoint(x: self.menuButton.center.x, y: self.menuButton.center.y + self.menuButtonCloseYDistance!)
+            });
+        }
+
         for item in self.menuItems {
             let distance: CGFloat = self.makeDistanceFromCenterButton(item.bounds.size, lastDisance: lastDistance, lastItemSize: lastItemSize)
             lastDistance = distance
@@ -303,7 +314,10 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
             let foldAnimation: CAAnimationGroup = self.makeFoldAnimation(startingPoint: item.center, backwardPoint: backwardPoint, endPoint: self.menuButton.center)
             
             item.layer.add(foldAnimation, forKey: "foldAnimation")
-            item.center = self.menuButton.center
+            let point = CGPoint(x: self.menuButton.center.x, y: self.menuButton.center.y-3)
+            item.center = point;
+            
+
             
             // Remove title button
             //
@@ -448,7 +462,15 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
         //
         // 1. Copy the current center point and backup default center point
         //
+        
+//        if(self.menuButtonCloseYDistance != nil){
+//            self.menuButton.center = CGPoint(x: self.menuButton.center.x, y: self.menuButton.center.y + self.menuButtonCloseYDistance!)
+//        }
         self.menuButton.center = self.center
+        UIView.animate(withDuration: 0.15 , animations: { () -> Void in
+            let a: CGFloat = self.center.y-self.menuButtonCloseYDistance!
+            self.menuButton.center = CGPoint(x: self.center.x, y: a)
+        });
         self.defaultCenterPoint = self.center
         
         // 2. Resize the frame
@@ -481,8 +503,8 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
         let currentAngle: CGFloat = 90.0
         
         var lastDistance: CGFloat = 0.0
-        var lastItemSize: CGSize = self.menuButton.bounds.size
-        
+      //  var lastItemSize: CGSize = self.menuButton.bounds.size
+        var lastItemSize: CGSize = CGSize(width: 50,height: 50)
         for (index, item) in self.menuItems.enumerated() {
             item.delegate = self
             item.index = index
@@ -500,13 +522,15 @@ open class ExpandingMenuButton: UIView, UIGestureRecognizerDelegate {
             let distance: CGFloat = self.makeDistanceFromCenterButton(item.bounds.size, lastDisance: lastDistance, lastItemSize: lastItemSize)
             lastDistance = distance
             lastItemSize = item.bounds.size
-            let endPoint: CGPoint = self.makeEndPoint(distance, angle: currentAngle / 180.0)
+            var endPoint: CGPoint = self.makeEndPoint(distance, angle: currentAngle / 180.0)
+            endPoint.x = endPoint.x - 3;
             let farPoint: CGPoint = self.makeEndPoint(distance + 10.0, angle: currentAngle / 180.0)
             let nearPoint: CGPoint = self.makeEndPoint(distance - 5.0, angle: currentAngle / 180.0)
             
             let expandingAnimation: CAAnimationGroup = self.makeExpandingAnimation(startingPoint: item.center, farPoint: farPoint, nearPoint: nearPoint, endPoint: endPoint)
             
             item.layer.add(expandingAnimation, forKey: "expandingAnimation")
+            
             item.center = endPoint
             
             // 3. Add Title Button

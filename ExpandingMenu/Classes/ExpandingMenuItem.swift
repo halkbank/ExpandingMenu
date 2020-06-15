@@ -148,6 +148,15 @@ open class ExpandingMenuItem: UIView {
         #endif
         button.sizeToFit()
         
+        let font =  UIFont (name: "SourceSansPro-Regular", size: 14)
+        let attributes = [NSAttributedString.Key.font: font,NSAttributedString.Key.foregroundColor:UIColor.white];
+        let attributedText = NSAttributedString(string: title, attributes: attributes as [NSAttributedString.Key : Any])
+        
+      
+        button.setAttributedTitle(attributedText, for: .normal)
+        
+        
+       
         button.addTarget(self, action: #selector(tapped), for: .touchUpInside)
         
         return button
